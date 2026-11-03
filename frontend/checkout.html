@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Checkout · Pagamento de demonstração</title>
+  <style>
+    :root { font-family: system-ui, sans-serif; color: #172a27; background: #f3f5f0; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px; }
+    main { width: min(100%, 520px); background: white; border: 1px solid #dce3dc; border-radius: 20px; padding: 36px; box-shadow: 0 12px 40px #19392c0a; }
+    .marca { font-size: 12px; font-weight: 750; letter-spacing: .12em; color: #537065; }
+    h1 { font-size: 30px; letter-spacing: -.04em; margin: 18px 0 12px; }
+    p { color: #596862; line-height: 1.6; }
+    dl { border-block: 1px solid #e4e9e3; padding: 20px 0; margin: 26px 0; }
+    dt { color: #64736b; font-size: 13px; margin-bottom: 6px; }
+    dd { margin: 0 0 18px; overflow-wrap: anywhere; }
+    dd:last-child { margin-bottom: 0; font-size: 32px; font-weight: 650; letter-spacing: -.04em; }
+    .acoes { display: grid; gap: 12px; }
+    button { font: inherit; font-weight: 650; border: 1px solid #bfcac1; border-radius: 10px; min-height: 48px; cursor: pointer; background: white; color: #853b34; padding: 12px; }
+    button:first-child { background: #205e45; border-color: #205e45; color: white; }
+    button:hover { filter: brightness(.95); }
+    button:focus-visible { outline: 3px solid #76a78a; outline-offset: 3px; }
+    button:disabled { opacity: .55; cursor: default; }
+    #mensagem { min-height: 48px; font-size: 14px; margin-bottom: 0; }
+    .nota { font-size: 12px; color: #6f7d75; margin-bottom: 0; }
+    @media (max-width: 400px) { main { padding: 24px; } h1 { font-size: 26px; } }
+  </style>
+</head>
+<body>
+  <main aria-labelledby="titulo">
+    <div class="marca">CHECKOUT / DEMONSTRAÇÃO</div>
+    <h1 id="titulo">Confirme seu pagamento</h1>
+    <p>Escolha o resultado desta compra simulada. O status do pedido será atualizado na loja.</p>
+    <dl><dt>Pedido</dt><dd id="pedido">Carregando…</dd><dt>Total da compra</dt><dd id="valor">—</dd></dl>
+    <div class="acoes" aria-label="Resultado do pagamento">
+      <button type="button" data-status="APROVADO" disabled>Pagamento Aprovado</button>
+      <button type="button" data-status="RECUSADO" disabled>Pagamento Recusado</button>
+    </div>
+    <p id="mensagem" role="status" aria-live="polite">Carregando cobrança…</p>
+    <p class="nota">Ambiente de teste. Nenhum valor será cobrado.</p>
+  </main>
+  <script>
+    const id = location.pathname.split('/').pop();
+    const endpoint = `/api/cobrancas/${encodeURIComponent(id)}`;
+    const mensagem = document.querySelector('#mensagem');
+    const botoes = [...document.querySelectorAll('button[data-status]')];
+    let cobranca;
+
+    function atualizar() {
+      document.querySelector('#pedido').textContent = cobranca.pedido_id;
+      document.querySelector('#valor').textContent = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cobranca.valor_total);
+      for (const botao of botoes) {
+        botao.disabled = cobranca.notificado || (cobranca.status !== 'PENDENTE' && cobranca.status !== botao.dataset.status);
+        if (cobranca.status === botao.dataset.status && !cobranca.notificado) botao.textContent = 'Reenviar confirmação';
+      }
+      mensagem.textContent = cobranca.notificado
+        ? `Pagamento ${cobranca.status === 'APROVADO' ? 'aprovado' : 'recusado'}. Você já pode voltar à loja.`
+        : cobranca.status === 'PENDENTE' ? 'Aguardando sua escolha.' : 'Sua escolha foi salva. Reenvie a confirmação para atualizar a loja.';
+    }
+
+    async function carregar() {
+      const resposta = await fetch(endpoint, { cache: 'no-store' });
+      if (!resposta.ok) throw new Error('Não foi possível carregar a cobrança. Atualize a página para tentar novamente.');
+      cobranca = await resposta.json();
+      atualizar();
+    }
+
+    for (const botao of botoes) {
+      botao.addEventListener('click', async () => {
+        botoes.forEach(b => b.disabled = true);
+        mensagem.textContent = 'Confirmando seu pagamento…';
+        try {
+          const resposta = await fetch(`${endpoint}/resultado`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: botao.dataset.status })
+          });
+          const dados = await resposta.json();
+          if (!resposta.ok) throw new Error(dados.erro || 'Falha ao confirmar pagamento.');
+          cobranca = dados;
+          atualizar();
+        } catch (erro) {
+          // Consulta a decisão gravada no servidor antes de liberar um retry.
+          try { await carregar(); } catch (_) { botao.disabled = false; }
+          mensagem.textContent = erro.message;
+        }
+      });
+    }
+    carregar().catch(erro => mensagem.textContent = erro.message);
+  </script>
+</body>
+</html>

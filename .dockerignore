@@ -1,0 +1,7 @@
+.venv
+.git
+keys
+.env
+__pycache__
+.pytest_cache
+data/interesses.local.json

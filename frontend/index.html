@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>E-commerce distribuído</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+
+  <header class="topbar">
+    <a class="brand" href="#catalogo">E-commerce</a>
+
+    <nav class="main-nav" aria-label="Navegação principal">
+      <a class="nav-link is-active" href="#catalogo">Catálogo</a>
+      <a class="nav-link" href="#pedidos">Pedidos</a>
+      <a class="nav-link" href="#promocoes">Promoções</a>
+    </nav>
+
+    <div class="topbar-actions">
+      <button id="open-cart" class="cart-button" type="button" aria-controls="cart-drawer" aria-expanded="false">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 3h2l2.2 10.2a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 2-1.6L20.3 7H6.1M10 20a1 1 0 1 1-2 0 1 1 0 0 1 2 0Zm9 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"/></svg>
+        <span>Carrinho</span>
+        <span id="cart-count" class="cart-count">0</span>
+      </button>
+    </div>
+  </header>
+
+  <main id="conteudo">
+    <section id="catalogo" class="section catalog-section" aria-labelledby="catalog-title">
+      <div class="section-heading">
+        <div>
+          <h1 id="catalog-title">Catálogo</h1>
+        </div>
+        <p>Produtos disponíveis no estoque.</p>
+      </div>
+
+      <div id="produtos" class="catalog-tools">
+        <div id="category-filters" class="filter-list" aria-label="Filtrar por categoria">
+          <button class="filter-chip is-active" type="button" data-category="todas">Todos</button>
+          <button class="filter-chip" type="button" data-category="A">Tecnologia</button>
+          <button class="filter-chip" type="button" data-category="B">Estudos</button>
+          <button class="filter-chip" type="button" data-category="C">Casa &amp; rotina</button>
+        </div>
+        <label class="search-field">
+          <span class="sr-only">Buscar produtos</span>
+          <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+          <input id="product-search" type="search" placeholder="Buscar no catálogo" autocomplete="off">
+        </label>
+      </div>
+
+      <div id="catalog-feedback" class="loading-state" role="status">
+        <span class="spinner" aria-hidden="true"></span>
+        Carregando produtos…
+      </div>
+      <div id="product-grid" class="product-grid" aria-live="polite"></div>
+    </section>
+
+    <section id="pedidos" class="section orders-section" aria-labelledby="orders-title">
+      <div class="section-heading">
+        <div>
+          <h2 id="orders-title">Pedidos</h2>
+        </div>
+        <button id="refresh-orders" class="secondary-button" type="button">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg>
+          Atualizar
+        </button>
+      </div>
+      <div id="orders-list" class="orders-list" aria-live="polite"></div>
+    </section>
+
+    <section id="promocoes" class="promo-section" aria-labelledby="promo-title">
+      <div class="promo-copy">
+        <h2 id="promo-title">Interesse em promoções</h2>
+        <p>Informe o e-mail e selecione as categorias desejadas.</p>
+      </div>
+
+      <form id="promo-form" class="promo-form">
+        <label for="promo-email">Seu melhor e-mail</label>
+        <input id="promo-email" name="email" type="email" placeholder="voce@exemplo.com" required autocomplete="email">
+
+        <fieldset>
+          <legend>Quero receber ofertas de</legend>
+          <div class="interest-options">
+            <label><input type="checkbox" name="categorias" value="A"><span><b>Tecnologia</b><small>Eletrônicos e acessórios</small></span></label>
+            <label><input type="checkbox" name="categorias" value="B"><span><b>Estudos</b><small>Livros e papelaria</small></span></label>
+            <label><input type="checkbox" name="categorias" value="C"><span><b>Casa &amp; rotina</b><small>Itens para o dia a dia</small></span></label>
+          </div>
+        </fieldset>
+
+        <div class="promo-actions">
+          <button class="primary-button" type="submit">Quero receber ofertas</button>
+          <button id="unsubscribe" class="text-button" type="button">Cancelar inscrição</button>
+        </div>
+        <p id="promo-feedback" class="form-feedback" role="status"></p>
+      </form>
+    </section>
+  </main>
+
+  <div id="drawer-backdrop" class="drawer-backdrop" hidden></div>
+  <aside id="cart-drawer" class="cart-drawer" aria-labelledby="cart-title" aria-hidden="true">
+    <div class="drawer-header">
+      <div>
+        <h2 id="cart-title">Carrinho</h2>
+      </div>
+      <button id="close-cart" class="icon-button" type="button" aria-label="Fechar carrinho">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+    <div id="cart-items" class="cart-items"></div>
+    <div class="drawer-footer">
+      <label class="checkout-email-field" for="checkout-email">
+        <span>E-mail do cliente</span>
+        <input id="checkout-email" type="email" placeholder="voce@exemplo.com" required autocomplete="email">
+      </label>
+      <div class="cart-total"><span>Total</span><strong id="cart-total">R$ 0,00</strong></div>
+      <button id="checkout-button" class="primary-button checkout-button" type="button" disabled>
+        Finalizar pedido <span aria-hidden="true">→</span>
+      </button>
+      <small>O pagamento será concluído com segurança em uma nova aba.</small>
+    </div>
+  </aside>
+
+  <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
+
+  <template id="product-template">
+    <article class="product-card">
+      <div class="product-info">
+        <div><span class="product-code"></span><span class="stock-label"></span></div>
+        <h3 class="product-name"></h3>
+        <div class="product-bottom"><strong class="product-price"></strong><button class="add-button" type="button"><span>Adicionar</span><b aria-hidden="true">+</b></button></div>
+      </div>
+    </article>
+  </template>
+
+  <script type="module" src="./js/app.js?v=demo1"></script>
+</body>
+</html>

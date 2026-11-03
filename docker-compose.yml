@@ -1,0 +1,114 @@
+x-app: &app
+  build: .
+  environment: &environment
+    RABBITMQ_URL: amqp://${RABBITMQ_USER:-ecommerce}:${RABBITMQ_PASSWORD:-ecommerce}@rabbitmq:5672/
+    MOCK_URL: http://mock-pagamento:8083
+    MOCK_PUBLIC_URL: http://localhost:8083
+    PAGAMENTO_WEBHOOK_URL: http://pagamento:8082/webhooks/pagamento
+    ESTOQUE_URL: http://estoque:3000
+    MOCK_API_TOKEN: ${MOCK_API_TOKEN:-desenvolvimento-local}
+    RESEND_API_KEY: ${RESEND_API_KEY:-}
+    PROMOCOES_EMAIL_FROM: ${PROMOCOES_EMAIL_FROM:-E-commerce <onboarding@resend.dev>}
+  volumes:
+    - chaves:/app/keys
+    - ./data:/app/data
+  healthcheck:
+    test: ["CMD", "python", "-c", "import os, urllib.request; urllib.request.urlopen('http://127.0.0.1:' + os.environ['HEALTHCHECK_PORT'] + '/health', timeout=3)"]
+    interval: 3s
+    timeout: 5s
+    start_period: 10s
+    retries: 30
+  depends_on:
+    rabbitmq:
+      condition: service_healthy
+    gerar-chaves:
+      condition: service_completed_successfully
+
+services:
+  rabbitmq:
+    image: rabbitmq:4-management
+    ports:
+      - "127.0.0.1:5672:5672"
+      - "127.0.0.1:15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-ecommerce}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-ecommerce}
+    volumes:
+      - rabbitmq-dados:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+  gerar-chaves:
+    build: .
+    command: ["python", "-m", "ecommerce", "gerar-chaves"]
+    volumes:
+      - chaves:/app/keys
+  principal:
+    <<: *app
+    environment:
+      <<: *environment
+      HEALTHCHECK_PORT: "3001"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      gerar-chaves:
+        condition: service_completed_successfully
+      estoque:
+        condition: service_healthy
+      pagamento:
+        condition: service_healthy
+      mock-pagamento:
+        condition: service_healthy
+      entrega:
+        condition: service_healthy
+    command: ["python", "-m", "ecommerce", "principal", "--host", "0.0.0.0"]
+    ports: ["127.0.0.1:3001:3001"]
+  estoque:
+    <<: *app
+    environment:
+      <<: *environment
+      HEALTHCHECK_PORT: "3000"
+    command: ["python", "-m", "ecommerce", "estoque", "--host", "0.0.0.0"]
+  pagamento:
+    <<: *app
+    environment:
+      <<: *environment
+      HEALTHCHECK_PORT: "8082"
+    command: ["python", "-m", "ecommerce", "pagamento", "--host", "0.0.0.0"]
+  mock-pagamento:
+    <<: *app
+    environment:
+      <<: *environment
+      HEALTHCHECK_PORT: "8083"
+    command: ["python", "-m", "ecommerce", "mock-pagamento", "--host", "0.0.0.0"]
+    ports: ["127.0.0.1:8083:8083"]
+  entrega:
+    <<: *app
+    environment:
+      <<: *environment
+      HEALTHCHECK_PORT: "8084"
+    command: ["python", "-m", "ecommerce", "entrega", "--host", "0.0.0.0"]
+  promocoes:
+    <<: *app
+    environment:
+      <<: *environment
+      HEALTHCHECK_PORT: "8085"
+    command: ["python", "-m", "ecommerce", "promocoes", "--host", "0.0.0.0"]
+  c1:
+    <<: *app
+    environment:
+      <<: *environment
+      HEALTHCHECK_PORT: "8086"
+    command: ["python", "-m", "ecommerce", "c1", "--host", "0.0.0.0"]
+  c2:
+    <<: *app
+    environment:
+      <<: *environment
+      HEALTHCHECK_PORT: "8087"
+    command: ["python", "-m", "ecommerce", "c2", "--host", "0.0.0.0"]
+
+volumes:
+  chaves:
+  rabbitmq-dados:
